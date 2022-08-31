@@ -10,6 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentation.dart';
 
+import 'common/compute_data.dart';
+import 'effects/gray.dart';
+import 'utils/image_util.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
@@ -35,7 +39,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Cheap portrait maker'),
     );
   }
 }
@@ -58,60 +62,6 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-Future<Uint8List> graySelfie(ComputeData cd) {
-  return compute<ComputeData, Uint8List>(_graySelfie, cd);
-}
-
-Uint8List _graySelfie(ComputeData cd) {
-  var byteData = cd.byteData;
-  var mask = cd.mask;
-  var decodedImage = cd;
-  var i = 0;
-  debugPrint("${mask.confidences.length}");
-  for (int y = 0; y < decodedImage.height; y++) {
-    for (int x =0; x < decodedImage.width; x++) {
-      // debugPrint("Starting $x of ${decodedImage.width} $y pf ${decodedImage.height}");
-      var nY = ((y/decodedImage.height)*255).round();
-      var nX = ((x/decodedImage.width)*255).round();
-
-      // debugPrint("${mask.confidences[(nY*mask.width) + nX] > 0}");
-      if (mask.confidences[(nY*mask.width) + nX] < 0.8) {
-        var rO = (y*decodedImage.width*4 + x*4);
-        var gO = (y*decodedImage.width*4 + x*4) + 1;
-        var bO = (y*decodedImage.width*4 + x*4) + 2;
-        var aO = (y*decodedImage.width*4 + x*4) + 3;
-
-        var red = byteData.getUint8(rO); //Red
-        var green = byteData.getUint8(gO); //Green
-        var blue = byteData.getUint8(bO); //Blue
-        var alpha = byteData.getUint8(aO); //Alpha - not used
-        var avg = ((red + green + blue)/3).round();
-        // debugPrint("red $red\ngreen $green\nblue $blue\nalpha $alpha\navg $avg");
-        byteData.setUint8(rO, avg);
-        byteData.setUint8(gO, avg);
-        byteData.setUint8(bO, avg);
-      }
-      i++;
-      // debugPrint("$x of ${decodedImage.width} $y pf ${decodedImage.height} i : $i");
-    }
-    debugPrint("Exiting X Loop $y");
-  }
-  debugPrint("Finished.");
-
-  return byteData.buffer.asUint8List();
-}
-
-class ComputeData {
-  SegmentationMask mask;
-  ByteData byteData;
-  int height;
-  int width;
-
-
-  ComputeData(this.mask, this.byteData, this.height, this.width);
-
-}
-
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   File? file;
@@ -130,40 +80,29 @@ class _MyHomePageState extends State<MyHomePage> {
     return mask!;
   }
 
-  Future<ui.Image?> imageToImage(Uint8List byteData, ui.Image inputImage) async {
-    var decodedImage = inputImage;
-    ui.Image? output;
-    var fixed = false;
-    Completer<ui.Image> completer = Completer<ui.Image>();
-    ui.decodeImageFromPixels(byteData, decodedImage.width, decodedImage.height, ui.PixelFormat.rgba8888, (result) {
-      debugPrint("finished image Processing");
-      output = result;
-      completer.complete(result);
-      /**
-       *
-       */
-    });
-    return completer.future;
-  }
-
   Future<SegmentationPainter> segmentSelfie(File file) async {
     var mask = await segSelfie(file);
     var decodedImage = await decodeImageFromList(file.readAsBytesSync());
     var bd = await decodedImage.toByteData(format: ui.ImageByteFormat.rawRgba);
-    var computeData = ComputeData(mask, bd!, decodedImage.height, decodedImage.width);
+    var computeData =
+        ComputeData(mask, bd!, decodedImage.height, decodedImage.width);
     // graySelfie(computeData).then((value) => debugPrint("${value.lengthInBytes}"));
 
     final inputImage = InputImage.fromFile(file);
     decodedImage = await decodeImageFromList(file.readAsBytesSync());
     // debugPrint("${x} of ${decodedImage.width} ${y} pf ${decodedImage.height}");
-    final size = Size(decodedImage.width.toDouble()/(decodedImage.width.toDouble()/256), decodedImage.height.toDouble()/(decodedImage.height.toDouble()/256));
+    final size = Size(
+        decodedImage.width.toDouble() / (decodedImage.width.toDouble() / 256),
+        decodedImage.height.toDouble() /
+            (decodedImage.height.toDouble() / 256));
     iSize = size;
     // final segmenter = SelfieSegmenter(
     //   mode: SegmenterMode.single,
     //   enableRawSizeMask: true,
     // );
     // // final mask = await segmenter.processImage(inputImage);
-    var segP = SegmentationPainter(mask, size, InputImageRotation.rotation0deg, decodedImage);
+    var segP = SegmentationPainter(
+        mask, size, InputImageRotation.rotation0deg, decodedImage);
     //segmenter.close();
     return segP;
   }
@@ -201,52 +140,40 @@ class _MyHomePageState extends State<MyHomePage> {
                 mask = segSelfie(file!),
                 decodedImage = decodeImageFromList(file!.readAsBytesSync()),
                 decodedImage.then((value) => {
-                  myDImage = value,
-                  value.toByteData(format: ui.ImageByteFormat.rawRgba).then((value) =>
-                    // bd = value,
-                    mask.then((valuea) =>
-                    {
-                      computeData = ComputeData(
-                          valuea, value!, myDImage.height, myDImage.width),
-                      graySelfie(computeData).then((grayOut) =>
-                      {
-                        debugPrint("${value.lengthInBytes}"),
-                        dImage.then((dvalue) => {
-                          imageToImage(grayOut, dvalue).then((imageV) =>
-                          {
-                          debugPrint("complete ${imageV?.width}"),
-
-                            //TOOD fix this
-                            segPainFuture.then((value) => {
-                              setState(() {
-                                file = File(pathA);
-                                segPain = ImagePainter(imageV!); //value
-                                dValue = dvalue;
-                              })
-                            })
-
-                          })
-
-                        }),
-                      })
+                      myDImage = value,
+                      value.toByteData(format: ui.ImageByteFormat.rawRgba).then(
+                            (value) =>
+                                // bd = value,
+                                mask.then((valuea) => {
+                                      computeData = ComputeData(valuea, value!,
+                                          myDImage.height, myDImage.width),
+                                      graySelfie(computeData).then((grayOut) =>
+                                          {
+                                            debugPrint(
+                                                "${value.lengthInBytes}"),
+                                            dImage.then((dvalue) => {
+                                                  imageToImage(grayOut, dvalue)
+                                                      .then((imageV) => {
+                                                            debugPrint(
+                                                                "complete ${imageV?.width}"),
+                                                            setState(() {
+                                                              file =
+                                                                  File(pathA);
+                                                              segPain =
+                                                                  ImagePainter(
+                                                                      imageV!); //value
+                                                              dValue = dvalue;
+                                                            })
+                                                          })
+                                                }),
+                                          })
+                                    }),
+                          )
                     }),
-                  )
-                }),
               }
           }
       },
     );
-  }
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
   }
 
   @override
@@ -283,33 +210,34 @@ class _MyHomePageState extends State<MyHomePage> {
           // horizontal).
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            file != null ? Image(image: FileImage(file!), height: 40, width: 30,) : Container(),
-            dValue != null ? FittedBox(
-              child:SizedBox(
-                  width: dValue!.width.toDouble(),
-                  height: dValue!.height.toDouble(),
-                  child:
-                    segPain != null ? CustomPaint
-                      (painter: segPain,
-                      willChange: true,
-                      /*child: file != null ? Image(image: FileImage(file!),) : Container(),*/
-                    ) : Container()
-              ),
-            ) : Container(),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
+            file != null
+                ? Image(
+                    image: FileImage(file!),
+                    height: 40,
+                    width: 30,
+                  )
+                : Container(),
+            dValue != null
+                ? FittedBox(
+                    child: SizedBox(
+                        width: dValue!.width.toDouble(),
+                        height: dValue!.height.toDouble(),
+                        child: segPain != null
+                            ? CustomPaint(
+                                painter: segPain,
+                                willChange: true,
+                                /*child: file != null ? Image(image: FileImage(file!),) : Container(),*/
+                              )
+                            : Container()),
+                  )
+                : Container(),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _pickFile,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        tooltip: 'Pick file to gray background',
+        child: const Icon(Icons.file_open_outlined),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }

@@ -2,6 +2,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentation.dart';
 
+// borrowed from the example at :
+// https://github.com/bharat-biradar/Google-Ml-Kit-plugin/blob/9efc03b25ca0806c1c29b5b2f0fcdd934f7756c5/packages/google_ml_kit/example/lib/vision_detector_views/painters/segmentation_painter.dart
 class SegmentationPainter extends CustomPainter {
   final SegmentationMask mask;
   final Size absoluteImageSize;
@@ -10,11 +12,11 @@ class SegmentationPainter extends CustomPainter {
   final ui.Image image;
 
   SegmentationPainter(
-      this.mask,
-      this.absoluteImageSize,
-      this.rotation,
-      this.image,
-      );
+    this.mask,
+    this.absoluteImageSize,
+    this.rotation,
+    this.image,
+  );
 
   @override
   void paint(Canvas canvas, Size size) {
