@@ -18,6 +18,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:cheap_portrait/ImagePainter.dart';
+import 'package:cheap_portrait/effects/create_effect.dart';
 import 'package:cheap_portrait/segmentation_painter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentatio
 import 'common/compute_data.dart';
 import 'effects/gray.dart';
 import 'utils/image_util.dart';
+import 'utils/segment_seflie.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,113 +79,32 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
   File? file;
-  CustomPainter? segPain;
+  CustomPainter? imagePainter;
   ui.Image? dValue;
-  Size iSize = Size.zero;
-
-  Future<SegmentationMask> segSelfie(File file) async {
-    final inputImage = InputImage.fromFile(file);
-    var decodedImage = await decodeImageFromList(file.readAsBytesSync());
-    final segmenter = SelfieSegmenter(
-      mode: SegmenterMode.single,
-      enableRawSizeMask: true,
-    );
-    final mask = await segmenter.processImage(inputImage);
-    return mask!;
-  }
-
-  Future<SegmentationPainter> segmentSelfie(File file) async {
-    var mask = await segSelfie(file);
-    var decodedImage = await decodeImageFromList(file.readAsBytesSync());
-    var bd = await decodedImage.toByteData(format: ui.ImageByteFormat.rawRgba);
-    var computeData =
-        ComputeData(mask, bd!, decodedImage.height, decodedImage.width);
-    // graySelfie(computeData).then((value) => debugPrint("${value.lengthInBytes}"));
-
-    final inputImage = InputImage.fromFile(file);
-    decodedImage = await decodeImageFromList(file.readAsBytesSync());
-    // debugPrint("${x} of ${decodedImage.width} ${y} pf ${decodedImage.height}");
-    final size = Size(
-        decodedImage.width.toDouble() / (decodedImage.width.toDouble() / 256),
-        decodedImage.height.toDouble() /
-            (decodedImage.height.toDouble() / 256));
-    iSize = size;
-    // final segmenter = SelfieSegmenter(
-    //   mode: SegmenterMode.single,
-    //   enableRawSizeMask: true,
-    // );
-    // // final mask = await segmenter.processImage(inputImage);
-    var segP = SegmentationPainter(
-        mask, size, InputImageRotation.rotation0deg, decodedImage);
-    //segmenter.close();
-    return segP;
-  }
-//TODO fix later
-  // Future<ImagePainter> imagePainter(File file) async {
-  //   final image = await decodeImageFromList(file.readAsBytesSync());
-  //
-  // }
 
   void _pickFile() {
     var result = FilePicker.platform.pickFiles(
       dialogTitle: "Find your file",
       type: FileType.image,
     );
-    Future<SegmentationPainter> segPainFuture;
-    Future<ui.Image> dImage;
-    String pathA;
-    Future<SegmentationMask> mask;
-    Future<ui.Image> decodedImage;
-    ui.Image myDImage;
-    ByteData? bd;
-    ComputeData computeData;
+    File imageFile;
     result.then(
       (value) => {
-        if (value == null)
-          {}
-        else
+        if (value != null)
           {
             if (value.files.isNotEmpty)
               {
-                file = File(value.files.first.path!),
-                pathA = value.files.first.path!,
-                segPainFuture = segmentSelfie(file!),
-                dImage = decodeImageFromList(file!.readAsBytesSync()),
-                mask = segSelfie(file!),
-                decodedImage = decodeImageFromList(file!.readAsBytesSync()),
-                decodedImage.then((value) => {
-                      myDImage = value,
-                      value.toByteData(format: ui.ImageByteFormat.rawRgba).then(
-                            (value) =>
-                                // bd = value,
-                                mask.then((valuea) => {
-                                      computeData = ComputeData(valuea, value!,
-                                          myDImage.height, myDImage.width),
-                                      graySelfie(computeData).then((grayOut) =>
-                                          {
-                                            debugPrint(
-                                                "${value.lengthInBytes}"),
-                                            dImage.then((dvalue) => {
-                                                  imageToImage(grayOut, dvalue)
-                                                      .then((imageV) => {
-                                                            debugPrint(
-                                                                "complete ${imageV?.width}"),
-                                                            setState(() {
-                                                              file =
-                                                                  File(pathA);
-                                                              segPain =
-                                                                  ImagePainter(
-                                                                      imageV!); //value
-                                                              dValue = dvalue;
-                                                            })
-                                                          })
-                                                }),
-                                          })
-                                    }),
-                          )
-                    }),
+                imageFile = File(value.files.first.path!),
+                createEffect(imageFile).then((value) => {
+                      setState(() {
+                        file = imageFile;
+                        if (value != null) {
+                          imagePainter = ImagePainter(value);
+                        }
+                        dValue = value;
+                      })
+                    })
               }
           }
       },
@@ -236,11 +157,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: SizedBox(
                         width: dValue!.width.toDouble(),
                         height: dValue!.height.toDouble(),
-                        child: segPain != null
+                        child: imagePainter != null
                             ? CustomPaint(
-                                painter: segPain,
+                                painter: imagePainter,
                                 willChange: true,
-                                /*child: file != null ? Image(image: FileImage(file!),) : Container(),*/
                               )
                             : Container()),
                   )
@@ -252,7 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: _pickFile,
         tooltip: 'Pick file to gray background',
         child: const Icon(Icons.file_open_outlined),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
