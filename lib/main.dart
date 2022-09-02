@@ -190,11 +190,16 @@ class _MyHomePageState extends State<MyHomePage> {
                   )
                 : Container(),
             dValue != null
-                ? Slider(
-                    value: sliderValue,
-                    onChanged: updating ? null : sliderUpdate,
-                    onChangeEnd: sliderEndUpdate,
-                    divisions: 100,
+                ? Column(
+                    children: [
+                      Text("Confidence : $sliderValue"),
+                      Slider(
+                        value: sliderValue,
+                        onChanged: updating ? null : sliderUpdate,
+                        onChangeEnd: sliderEndUpdate,
+                        divisions: 100,
+                      )
+                    ],
                   )
                 : Container(),
           ],
