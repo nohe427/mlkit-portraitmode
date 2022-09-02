@@ -34,28 +34,28 @@ Future<SegmentationMask> segSelfie(File file) async {
   return mask!;
 }
 
-// avoid this one. Used for testing early on.
-Future<SegmentationPainter> segmentSelfieDontUsePlease(File file) async {
-  var mask = await segSelfie(file);
-  var decodedImage = await decodeImageFromList(file.readAsBytesSync());
-  var bd = await decodedImage.toByteData(format: ui.ImageByteFormat.rawRgba);
-  var computeData =
-      ComputeData(mask, bd!, decodedImage.height, decodedImage.width);
-  // graySelfie(computeData).then((value) => debugPrint("${value.lengthInBytes}"));
+// // avoid this one. Used for testing early on.
+// Future<SegmentationPainter> segmentSelfieDontUsePlease(File file) async {
+//   var mask = await segSelfie(file);
+//   var decodedImage = await decodeImageFromList(file.readAsBytesSync());
+//   var bd = await decodedImage.toByteData(format: ui.ImageByteFormat.rawRgba);
+//   var computeData =
+//       ComputeData(mask, bd!, decodedImage.height, decodedImage.width);
+//   // graySelfie(computeData).then((value) => debugPrint("${value.lengthInBytes}"));
 
-  final inputImage = InputImage.fromFile(file);
-  decodedImage = await decodeImageFromList(file.readAsBytesSync());
-  // debugPrint("${x} of ${decodedImage.width} ${y} pf ${decodedImage.height}");
-  final size = Size(
-      decodedImage.width.toDouble() / (decodedImage.width.toDouble() / 256),
-      decodedImage.height.toDouble() / (decodedImage.height.toDouble() / 256));
-  // final segmenter = SelfieSegmenter(
-  //   mode: SegmenterMode.single,
-  //   enableRawSizeMask: true,
-  // );
-  // // final mask = await segmenter.processImage(inputImage);
-  var segP = SegmentationPainter(
-      mask, size, InputImageRotation.rotation0deg, decodedImage);
-  //segmenter.close();
-  return segP;
-}
+//   final inputImage = InputImage.fromFile(file);
+//   decodedImage = await decodeImageFromList(file.readAsBytesSync());
+//   // debugPrint("${x} of ${decodedImage.width} ${y} pf ${decodedImage.height}");
+//   final size = Size(
+//       decodedImage.width.toDouble() / (decodedImage.width.toDouble() / 256),
+//       decodedImage.height.toDouble() / (decodedImage.height.toDouble() / 256));
+//   // final segmenter = SelfieSegmenter(
+//   //   mode: SegmenterMode.single,
+//   //   enableRawSizeMask: true,
+//   // );
+//   // // final mask = await segmenter.processImage(inputImage);
+//   var segP = SegmentationPainter(
+//       mask, size, InputImageRotation.rotation0deg, decodedImage);
+//   //segmenter.close();
+//   return segP;
+// }

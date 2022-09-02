@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:google_mlkit_selfie_segmentation/google_mlkit_selfie_segmentation.dart';
@@ -21,6 +22,9 @@ class ComputeData {
   ByteData byteData;
   int height;
   int width;
+  double? confidence_limit;
+  SendPort? recieverSendPort;
 
-  ComputeData(this.mask, this.byteData, this.height, this.width);
+  ComputeData(this.mask, this.byteData, this.height, this.width,
+      [this.confidence_limit, this.recieverSendPort]);
 }

@@ -16,12 +16,15 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:cheap_portrait/common/compute_data.dart';
 import 'package:cheap_portrait/effects/gray.dart';
+import 'package:cheap_portrait/effects/transparent_selfie.dart';
 import 'package:cheap_portrait/utils/image_util.dart';
 import 'package:flutter/material.dart';
 
 import '../utils/segment_seflie.dart';
 
-Future<ui.Image?> createEffect(File file) async {
+Future<ui.Image?> createEffect(File file, double confidence_amount) async {
+  GraySelfie gs = GraySelfie();
+  final graySelfie = gs.graySelfie;
   var mask = await segSelfie(file);
   var decodedImage = await decodeImageFromList(file.readAsBytesSync());
   var byteData =
@@ -29,9 +32,11 @@ Future<ui.Image?> createEffect(File file) async {
   if (byteData == null) {
     return null;
   }
-  var computeData =
-      ComputeData(mask, byteData, decodedImage.height, decodedImage.width);
-  var colorPopRawImage = await graySelfie(computeData);
+  var computeData = ComputeData(mask, byteData, decodedImage.height,
+      decodedImage.width, confidence_amount);
+  var colorPopRawImage =
+      // await transparentSelfie(computeData);
+      await graySelfie(computeData);
   var colorPopImage = imageToImage(colorPopRawImage, decodedImage);
   return colorPopImage;
 }

@@ -82,6 +82,8 @@ class _MyHomePageState extends State<MyHomePage> {
   File? file;
   CustomPainter? imagePainter;
   ui.Image? dValue;
+  double sliderValue = .80;
+  bool updating = false;
 
   void _pickFile() {
     var result = FilePicker.platform.pickFiles(
@@ -96,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
             if (value.files.isNotEmpty)
               {
                 imageFile = File(value.files.first.path!),
-                createEffect(imageFile).then((value) => {
+                createEffect(imageFile, sliderValue).then((value) => {
                       setState(() {
                         file = imageFile;
                         if (value != null) {
@@ -109,6 +111,28 @@ class _MyHomePageState extends State<MyHomePage> {
           }
       },
     );
+  }
+
+  void sliderUpdate(double? newValue) {
+    debugPrint("New Value $newValue");
+    setState(() {
+      sliderValue = newValue!;
+    });
+  }
+
+  void sliderEndUpdate(double? newValue) {
+    setState(() {
+      updating = true;
+    });
+    createEffect(file!, newValue!).then((value) => {
+          setState(() {
+            if (value != null) {
+              imagePainter = ImagePainter(value);
+            }
+            dValue = value;
+            updating = false;
+          })
+        });
   }
 
   @override
@@ -163,6 +187,14 @@ class _MyHomePageState extends State<MyHomePage> {
                                 willChange: true,
                               )
                             : Container()),
+                  )
+                : Container(),
+            dValue != null
+                ? Slider(
+                    value: sliderValue,
+                    onChanged: updating ? null : sliderUpdate,
+                    onChangeEnd: sliderEndUpdate,
+                    divisions: 100,
                   )
                 : Container(),
           ],
